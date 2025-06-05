@@ -32,7 +32,7 @@ class Args:
     eval_episodes: int = 100
     # track with WandB
     wandb_tracking: bool = True
-    # WandB configuration
+    # WandB configurations
     wandb_proj: str = "rle-baselines"
     wandb_entity: str = None
     #capture videos of the agents performances
