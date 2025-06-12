@@ -23,6 +23,7 @@ from stable_baselines3.common.atari_wrappers import (
     NoopResetEnv,
 )
 
+
 gym.register_envs(ale_py)
 
 
@@ -52,7 +53,7 @@ class Args:
     # evaluation of the checkpoint"""
     eval_checkpoint: str = None
     # timesteps of the experiments
-    total_timesteps: int = 10_000_000
+    total_timesteps: int = 10_000
     # learning rate
     lr: float = 2.5e-4
     # the number of parallel game environments
@@ -335,6 +336,7 @@ if __name__ == "__main__":
             writer.add_scalar("losses/approx_kl", approx_kl.item(), global_step)
             writer.add_scalar("losses/clipfrac", np.mean(clipfracs), global_step)
             writer.add_scalar("losses/explained_variance", explained_var, global_step)
+
             print("SPS:", int(global_step / (time.time() - start_time)))
             writer.add_scalar("charts/StepPerSecond", int(global_step / (time.time() - start_time)), global_step)
 
@@ -349,7 +351,7 @@ if __name__ == "__main__":
         model_path,
         make_env,
         args.env_id,
-        eval_episodes=100,
+        eval_episodes=args.eval_episodes,
         run_name=f"{run_name}-eval",
         Model=Agent,
         device=device,
