@@ -1,81 +1,108 @@
-from __future__ import annotations
-import argparse, glob
-from pathlib import Path
+#!/usr/bin/env python3
+"""
+plot_results.py
+
+Lädt TensorBoard Event-Dateien und erstellt Plots für die wichtigsten RL-Metriken:
+- Training: Episodische Returns, Verluste, Lernrate, Schrittgeschwindigkeit, etc.
+- Evaluation: Episodische Returns, Länge, Zeit
+
+Verwendung:
+    python eval_initial_plots.py --logdir runs/SpaceInvaders-v5__ppo_clean_rl__1__20250612_123456
+    python eval_initial_plots.py --logdir runs/... --save_dir figures/
+
+Abhängigkeiten:
+    pip install tensorboard matplotlib
+"""
+import os
+import argparse
+from tensorboard.backend.event_processing import event_accumulator
 import matplotlib.pyplot as plt
-from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
-def read_scalar(event_file: str, tag: str):
-    ea = EventAccumulator(event_file, size_guidance={"scalars": 0})
+
+def load_scalars(log_dir):
+    # Lade alle Scalar-Tags aus dem Event-Ordner
+    ea = event_accumulator.EventAccumulator(
+        log_dir,
+        size_guidance={
+            # 0 = keine Begrenzung, lade alle Werte
+            event_accumulator.SCALARS: 0,
+        }
+    )
     ea.Reload()
-    if tag not in ea.Tags()["scalars"]:
-        raise KeyError
-    evs = ea.Scalars(tag)
-    return [e.step for e in evs], [e.value for e in evs]
+    tags = ea.Tags().get('scalars', [])
+    data = {tag: ea.Scalars(tag) for tag in tags}
+    return data
 
-def locate_event_files(run_dir: Path):
-    files = glob.glob(str(run_dir / "events.out.tfevents.*"))
-    if not files:
-        raise FileNotFoundError(f"No event files under {run_dir}")
-    return files
+
+def plot_metric(xs, ys, title, xlabel, ylabel, show=True, save_path=None):
+    plt.figure()
+    plt.plot(xs, ys)
+    plt.title(title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.tight_layout()
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        plt.savefig(save_path)
+    if show:
+        plt.show()
+    plt.close()
+
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("run_dir", type=Path)
-    parser.add_argument("--out", default="results.png")
-    parser.add_argument("--show", action="store_true")
+    parser = argparse.ArgumentParser(description="Plot RL metrics from TensorBoard logs.")
+    parser.add_argument('--logdir', type=str, required=True,
+                        help='Pfad zum TensorBoard-Log-Verzeichnis (runs/ALE/...)')
+    parser.add_argument('--save_dir', type=str, default=None,
+                        help='Wenn angegeben, werden die Plots hier als PNGs gespeichert')
+    parser.add_argument('--no_show', action='store_true', help='Unterdrücke Anzeige der Plots (nützlich beim Speichern)')
     args = parser.parse_args()
 
-    event_files = locate_event_files(args.run_dir)
+    data = load_scalars(args.logdir)
 
-    # Debug: list tags
-    print("=== TAG DUMP ===")
-    for evf in event_files:
-        ea = EventAccumulator(evf, size_guidance={"scalars": 0})
-        ea.Reload()
-        print(f"\nFile: {evf}")
-        for tag in ea.Tags()["scalars"]:
-            print("  ", tag)
-    print("================\n")
+    # Definiere Metriken
+    train_metrics = [
+        ('train/episodic_return', 'Global Step', 'Episodic Return'),
+        ('charts/learning_rate', 'Global Step', 'Learning Rate'),
+        ('losses/value_loss', 'Global Step', 'Value Loss'),
+        ('losses/policy_loss', 'Global Step', 'Policy Loss'),
+        ('losses/entropy', 'Global Step', 'Entropy'),
+        ('losses/old_approx_kl', 'Global Step', 'Old Approx KL'),
+        ('losses/approx_kl', 'Global Step', 'Approx KL'),
+        ('losses/clipfrac', 'Global Step', 'Clip Fraction'),
+        ('losses/explained_variance', 'Global Step', 'Explained Variance'),
+        ('charts/StepPerSecond', 'Global Step', 'Steps per Second'),
+    ]
+    eval_metrics = [
+        ('eval/episodic_return', 'Episode', 'Eval Return'),
+        ('eval/episodic_length', 'Episode', 'Eval Length'),
+        ('eval/episodic_time', 'Episode', 'Eval Time'),
+    ]
 
-    # Choose your actual tag names after inspecting the dump:
-    train_tag = "rollout/ep_rew_mean"
-    eval_tag  = "eval/episodic_return"
+    # Plot Training-Metriken
+    for tag, xlabel, ylabel in train_metrics:
+        if tag in data:
+            events = data[tag]
+            xs = [e.step for e in events]
+            ys = [e.value for e in events]
+            save_path = None
+            if args.save_dir:
+                save_path = os.path.join(args.save_dir, tag.replace('/', '_') + '.png')
+            plot_metric(xs, ys, tag, xlabel, ylabel, show=not args.no_show, save_path=save_path)
 
-    # Read training
-    for evf in event_files:
-        try:
-            steps_train, values_train = read_scalar(evf, train_tag)
-            print("Training data →", evf)
-            break
-        except KeyError:
-            continue
-    else:
-        raise RuntimeError(f"Training tag not found: {train_tag}")
+    # Plot Evaluation-Metriken
+    for tag, xlabel, ylabel in eval_metrics:
+        if tag in data:
+            events = data[tag]
+            xs = list(range(1, len(events) + 1))
+            ys = [e.value for e in events]
+            save_path = None
+            if args.save_dir:
+                save_path = os.path.join(args.save_dir, tag.replace('/', '_') + '.png')
+            plot_metric(xs, ys, tag, xlabel, ylabel, show=not args.no_show, save_path=save_path)
 
-    # Read evaluation
-    for evf in event_files:
-        try:
-            steps_eval, values_eval = read_scalar(evf, eval_tag)
-            print("Eval data →", evf)
-            break
-        except KeyError:
-            continue
-    else:
-        raise RuntimeError(f"Eval tag not found: {eval_tag}")
+    print("Fertig mit Plot-Erstellung!")
 
-    # Plot
-    plt.figure()
-    plt.plot(steps_train, values_train, label="Training return")
-    plt.plot(steps_eval, values_eval, label="Eval return")
-    plt.xlabel("Environment steps")
-    plt.ylabel("Episodic return")
-    plt.title("PPO CleanRL: Training vs Evaluation")
-    plt.legend()
-    plt.grid(True)
-    plt.tight_layout()
-    plt.savefig(args.out, dpi=150)
-    print(f"Saved plot to {args.out}")
-    if args.show: plt.show()
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

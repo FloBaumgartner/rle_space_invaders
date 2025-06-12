@@ -53,7 +53,7 @@ class Args:
     # evaluation of the checkpoint"""
     eval_checkpoint: str = None
     # timesteps of the experiments
-    total_timesteps: int = 10_000
+    total_timesteps: int = 100_000
     # learning rate
     lr: float = 2.5e-4
     # the number of parallel game environments
@@ -237,12 +237,15 @@ if __name__ == "__main__":
                 rewards[step] = torch.tensor(reward).to(device).view(-1)
                 next_obs, next_done = torch.Tensor(next_obs).to(device), torch.Tensor(next_done).to(device)
 
-                if "final_info" in infos:
-                    for info in infos["final_info"]:
-                        if info and "episode" in info:
-                            print(f"global_step={global_step}, episodic_return={info['episode']['r']}")
-                            writer.add_scalar("charts/episodic_return", info["episode"]["r"], global_step)
-                            writer.add_scalar("charts/episodic_length", info["episode"]["l"], global_step)
+
+                if (terminations.any() or truncations.any()) and "episode" in infos:
+                    for info in np.argwhere(infos["_episode"]):
+                        print(f"global_step={global_step}, episodic_return={infos['episode']['r'][info]}")
+                        writer.add_scalar("train/episodic_time", infos["episode"]["t"][info], global_step)
+                        writer.add_scalar("train/episodic_return", infos["episode"]["r"][info], global_step)
+                        writer.add_scalar("train/episodic_length", infos["episode"]["l"][info], global_step)
+
+
 
             # bootstrap value if not done
             with torch.no_grad():
