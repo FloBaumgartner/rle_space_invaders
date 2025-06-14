@@ -40,7 +40,7 @@ class Args:
     exp_name: str = os.path.basename(__file__)[: -len(".py")]
     seed: int = 1
     env_id: str = "ALE/SpaceInvaders-v5"
-    eval_episodes: int = 2
+    eval_episodes: int = 100
     wandb_tracking: bool = True
     wandb_proj: str = "rle-rnd"
     wandb_entity: str = None
@@ -49,7 +49,7 @@ class Args:
     cuda: bool = True
     save_model: bool = True
     eval_checkpoint: str = None
-    total_timesteps: int = 20_000
+    total_timesteps: int = 1_000_000
     lr: float = 2.5e-4
     num_envs: int = 16
     num_steps: int = 128
