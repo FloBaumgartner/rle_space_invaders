@@ -61,7 +61,7 @@ class Args:
     # evaluation of the checkpoint
     eval_checkpoint: str = None
     # timesteps of the experiments
-    total_timesteps: int = 1_000_000
+    total_timesteps: int = 5_000_000
     # learning rate
     lr: float = 2.5e-4
     # the number of parallel game environments

@@ -49,7 +49,7 @@ class Args:
     cuda: bool = True
     save_model: bool = True
     eval_checkpoint: str = None
-    total_timesteps: int = 1_000_000
+    total_timesteps: int = 5_000_000
     lr: float = 2.5e-4
     num_envs: int = 16
     num_steps: int = 128
