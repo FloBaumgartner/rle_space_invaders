@@ -1,3 +1,11 @@
+"""
+PPO with IMPALA‑CNN‑Backbone
+– bigger, residual‑based CNN architecture
+
+Run:
+    python ppo_impala.py --total_timesteps 1_000_000 --wandb_tracking True --video True
+"""
+
 import os
 import random
 import time
@@ -40,7 +48,7 @@ class Args:
     # track with WandB
     wandb_tracking: bool = True
     # WandB configurations
-    wandb_proj: str = "rle-initial"
+    wandb_proj: str = "rle-impala"
     wandb_entity: str = None
     #capture videos of the agents performances
     video: bool = True
@@ -88,14 +96,12 @@ class Args:
     skip_frames: int = 4
 
 
-
     #batch size (computed in runtime)
     batch_size: int = 0
     #mini batch size (computed in runtime)
     minibatch_size: int = 0
     # number of iterations (computed in runtime)
     num_iterations: int = 0
-
 
 def make_env(env_id, idx, video, run_name):
     def thunk():
@@ -114,44 +120,49 @@ def make_env(env_id, idx, video, run_name):
         env = gym.wrappers.ResizeObservation(env, (84, 84))
         env = gym.wrappers.GrayscaleObservation(env)
         env = gym.wrappers.FrameStackObservation(env, 4)
+        #env.reset(seed=seed)
         return env
 
     return thunk
 
 
-def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
-    torch.nn.init.orthogonal_(layer.weight, std)
-    torch.nn.init.constant_(layer.bias, bias_const)
-    return layer
+class ImpalaCNNAgent(nn.Module):
+    """3‑Block IMPALA CNN Head."""
 
-
-class Agent(nn.Module):
-    def __init__(self, envs):
+    def __init__(self, envs, in_channels=4):
         super().__init__()
-        self.network = nn.Sequential(
-            layer_init(nn.Conv2d(4, 32, 8, stride=4)),
-            nn.ReLU(),
-            layer_init(nn.Conv2d(32, 64, 4, stride=2)),
-            nn.ReLU(),
-            layer_init(nn.Conv2d(64, 64, 3, stride=1)),
-            nn.ReLU(),
-            nn.Flatten(),
-            layer_init(nn.Linear(64 * 7 * 7, 512)),
-            nn.ReLU(),
-        )
-        self.actor = layer_init(nn.Linear(512, envs.single_action_space.n), std=0.01)
-        self.critic = layer_init(nn.Linear(512, 1), std=1)
+
+        def block(in_c, out_c):
+            return nn.Sequential(
+                nn.Conv2d(in_c, out_c, 3, stride=1, padding=1),
+                nn.ReLU(),
+                nn.Conv2d(out_c, out_c, 3, stride=1, padding=1),
+                nn.ReLU(),
+                nn.MaxPool2d(3, stride=2, padding=1),
+            )
+
+        self.trunk = nn.Sequential(block(in_channels, 16), block(16, 32), block(32, 32))
+        self.flat_dim = 32 * 11 * 11
+        self.fc = nn.Linear(self.flat_dim, 256)
+        self.actor = nn.Linear(256, envs.single_action_space.n)
+        self.critic = nn.Linear(256, 1)
+
+    def features(self, x):
+        x = x / 255.0  # scale
+        x = self.trunk(x)
+        x = x.view(x.size(0), -1)
+        return torch.relu(self.fc(x))
 
     def get_value(self, x):
-        return self.critic(self.network(x / 255.0))
+        return self.critic(self.features(x))
 
     def get_action_and_value(self, x, action=None):
-        hidden = self.network(x / 255.0)
-        logits = self.actor(hidden)
+        h = self.features(x)
+        logits = self.actor(h)
         probs = Categorical(logits=logits)
         if action is None:
             action = probs.sample()
-        return action, probs.log_prob(action), probs.entropy(), self.critic(hidden)
+        return action, probs.log_prob(action), probs.entropy(), self.critic(h)
 
 
 if __name__ == "__main__":
@@ -192,11 +203,10 @@ if __name__ == "__main__":
     )
     assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
 
-    agent = Agent(envs).to(device)
+    agent = ImpalaCNNAgent(envs).to(device)
     optimizer = optim.Adam(agent.parameters(), lr=args.lr, eps=1e-5)
 
     if not args.eval_checkpoint:
-
         # ALGO Logic: Storage setup
         obs = torch.zeros((args.num_steps, args.num_envs) + envs.single_observation_space.shape).to(device)
         actions = torch.zeros((args.num_steps, args.num_envs) + envs.single_action_space.shape).to(device)
@@ -244,7 +254,6 @@ if __name__ == "__main__":
                         writer.add_scalar("train/episodic_time", infos["episode"]["t"][info], global_step)
                         writer.add_scalar("train/episodic_return", infos["episode"]["r"][info], global_step)
                         writer.add_scalar("train/episodic_length", infos["episode"]["l"][info], global_step)
-
 
 
             # bootstrap value if not done
@@ -356,7 +365,7 @@ if __name__ == "__main__":
         args.env_id,
         eval_episodes=args.eval_episodes,
         run_name=f"{run_name}-eval",
-        Model=Agent,
+        Model=ImpalaCNNAgent,
         device=device,
     )
 
@@ -371,3 +380,7 @@ if __name__ == "__main__":
         envs.close()
     except:
         pass
+
+
+
+
