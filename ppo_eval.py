@@ -24,7 +24,9 @@ def evaluate(
 
     print('Starting evaluation...')
     while len(ep_events) < eval_episodes:
-        actions, _, _, _ = agent.get_action_and_value(torch.Tensor(obs).to(device))
+        obs_tensor = torch.tensor(obs, dtype=torch.float32, device=device)
+        outputs = agent.get_action_and_value(obs_tensor)
+        actions = outputs[0]
         next_obs, rewards, terminated, truncated, infos = envs.step(actions.cpu().numpy())
         if (terminated or truncated) and "episode" in infos:
             print(
