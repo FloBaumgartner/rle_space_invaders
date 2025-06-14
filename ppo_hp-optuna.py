@@ -75,7 +75,7 @@ class Args:
 
     # ---------------- Optuna flags ------------------
     tune: bool = True  # if True: run Bayesian HPO, else vanilla training
-    n_trials: int = 64  # number of HPO trials
+    n_trials: int = 64 # number of HPO trials
     study_name: str = "ppo_spaceinvaders_tpe"
     storage: str | None = None
 
@@ -424,7 +424,14 @@ if __name__ == "__main__":
         best_args.total_timesteps = 5_000_000  # retrain for longer
         best_args.eval_episodes = 100
         best_args.video = True  # record video for final agent
-        train_once(best_args)
+
+        if (os.getenv("SLURM_ARRAY_TASK_ID") == "0"  # nur Array-Task 0
+                or os.getenv("SLURM_ARRAY_TASK_ID") is None  # falls kein Array
+        ):
+            print("Starting full retrain with best hyper-parameters …")
+            train_once(best_args)
+        else:
+            print("Skip retrain on this worker – already handled by Task 0.")
     else:
         # Plain vanilla training identical to ppo_initial
         train_once(args)
