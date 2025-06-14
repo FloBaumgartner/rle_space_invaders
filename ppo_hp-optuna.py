@@ -395,7 +395,17 @@ if __name__ == "__main__":
             sampler=TPESampler(seed=args.seed),
             pruner=MedianPruner(),
         )
-        study.optimize(lambda t: suggest_and_train(t, args), n_trials=args.n_trials, show_progress_bar=True)
+        completed = len([t for t in study.trials
+                         if t.state == optuna.trial.TrialState.COMPLETE])
+
+        remaining = max(args.n_trials - completed, 0)
+
+        if remaining > 0:
+            study.optimize(
+                lambda t: suggest_and_train(t, args),
+                n_trials=remaining,
+                show_progress_bar=True,
+            )
 
         print("\n===== Hyper‑parameter optimisation finished =====")
         print("Best mean return:", study.best_value)
