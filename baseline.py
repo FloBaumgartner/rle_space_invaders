@@ -104,16 +104,7 @@ def evaluate_agent(
     agent,
     video: bool = True,
 ):
-    """
-    Generische Evaluations-Funktion, die sowohl RandomAgent als auch HeuristicAgent
-    unterstützt. Gibt pro Episode ein Dictionary mit folgenden Keys zurück:
-      - 'return': kumulierter Reward (nach Clipping)
-      - 'length': Anzahl der Schritte in der Episode
-      - 'time': Dauer (in Sekunden) für die Episode
-      - 'shots_fired': Anzahl der Schuss-Ereignisse (Action==FIRE oder FIRE-Kombination)
-      - 'hits': Anzahl der Rewards > 0 (also tatsächlich erreichte Punkte)
-      - 'avg_reward_per_hit': Mittelwert reward/hit (falls hits>0, sonst 0)
-    """
+
     # Wir erstellen genau eine Vector-Env-Instanz (SyncVectorEnv), idx=0
     envs = gym.vector.SyncVectorEnv([make_env(env_id, 0, video, run_name)])
     action_space = envs.single_action_space
@@ -122,65 +113,19 @@ def evaluate_agent(
     obs, _ = envs.reset()
     episodic_events = []
 
-    # tracking variables
-    shots_fired = 0
-    hits = 0
-    total_reward = 0.0      # Summe of Rewards in the current episode
-    ep_steps = 0            # count of steps in the current episode
 
     completed_episodes = 0
     ep_start_time = time.time()
 
-    while completed_episodes < eval_episodes:
-        # Agent chooses an action
+    while len(episodic_events) < eval_episodes:
         action = agent.get_action()
-        if action in [1, 4, 5]:
-            shots_fired += 1
-
-        # Environment-Step
         next_obs, rewards, terminated, truncated, infos = envs.step([action])
 
-        # update reward and step-count
-        reward = float(rewards[0])
-        total_reward += reward
-        ep_steps += 1
-        if reward > 0:
-            hits += 1
-
-        # check if Episode is done
-        if terminated[0] or truncated[0]:
-            ep_return = total_reward
-            ep_length = ep_steps
-            ep_time = time.time() - ep_start_time
-            avg_rph = (ep_return / hits) if hits > 0 else 0.0
-
-            # print to Terminal
+        if (terminated or truncated) and "episode" in infos:
             print(
-                f"[{agent.__class__.__name__}] "
-                f"|||Episode={completed_episodes}|| Return={ep_return:.0f}|| Length={ep_length}|||"
-                f"|||Shots={shots_fired}|| Hits={hits}|| AvgR/Hit={avg_rph:.2f}|| Time={ep_time:.2f}s|||"
-            )
-
-            # svae
-            episodic_events.append({
-                'return': ep_return,
-                'length': ep_length,
-                'time': ep_time,
-                'shots_fired': shots_fired,
-                'hits': hits,
-                'avg_reward_per_hit': avg_rph,
-            })
-
-            # End episode: reset environment
-            completed_episodes += 1
-            obs, _ = envs.reset()
-            shots_fired = 0
-            hits = 0
-            total_reward = 0.0
-            ep_steps = 0
-            ep_start_time = time.time()
-
-        # update observation
+                f"eval_episode={len(episodic_events)}, episodic_return={infos['episode']['r']}, episodic_length={infos['episode']['l']}, episodic_time={infos['episode']['t']}")
+            episodic_events += [
+                {'return': infos['episode']['r'], 'length': infos['episode']['l'], 'time': infos['episode']['t']}]
         obs = next_obs
 
     return episodic_events
@@ -214,7 +159,7 @@ if __name__ == "__main__":
         "|param|value|\n|-|-|\n%s" % ("\n".join([f"|{key}|{value}|" for key, value in vars(args).items()])),
     )
 
-    # Baseline 1: RandomAgent
+    # RandomAgent baseline
     print("Start Eval RandomAgent: -------------------------------------------")
     random_agent = RandomAgent(gym.make(args.env_id).action_space)
     random_events = evaluate_agent(
@@ -230,11 +175,8 @@ if __name__ == "__main__":
         writer.add_scalar("random/episodic_return", event['return'], idx)
         writer.add_scalar("random/episodic_length", event['length'], idx)
         writer.add_scalar("random/episodic_time", event['time'], idx)
-        writer.add_scalar("random/shots_fired", event['shots_fired'], idx)
-        writer.add_scalar("random/hits", event['hits'], idx)
-        writer.add_scalar("random/avg_reward_per_hit", event['avg_reward_per_hit'], idx)
 
-    # 4.2 Baseline 2: HeuristicAgent
+    # HeuristicAgent baseline
     print("Start Eval HeuristicAgent: -------------------------------------------")
     heuristic_agent = HeuristicAgent(gym.make(args.env_id).action_space, bounce_steps=50)
     heuristic_events = evaluate_agent(
@@ -250,8 +192,5 @@ if __name__ == "__main__":
         writer.add_scalar("heuristic/episodic_return", event['return'], idx)
         writer.add_scalar("heuristic/episodic_length", event['length'], idx)
         writer.add_scalar("heuristic/episodic_time", event['time'], idx)
-        writer.add_scalar("heuristic/shots_fired", event['shots_fired'], idx)
-        writer.add_scalar("heuristic/hits", event['hits'], idx)
-        writer.add_scalar("heuristic/avg_reward_per_hit", event['avg_reward_per_hit'], idx)
 
     writer.close()
