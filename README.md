@@ -33,6 +33,8 @@ ppo_eval.py              # Sammle Ergebnisse aus allen Experimenten
 eval_metrics.ipynb       # Notebook: Metriken-Berechnung (Auswahl)
 eval_metrics_all.ipynb   # Notebook: Erweiterte Metriken für alle Durchläufe
 bericht.md               # Zusammenfassung und Analyse der Ergebnisse
+
+plots/                   # Enthält alle Plots der Experimente
 ```
 
 ## Voraussetzungen
