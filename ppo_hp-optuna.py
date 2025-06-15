@@ -40,7 +40,7 @@ class Args:
     exp_name: str = os.path.basename(__file__)[: -len(".py")]
     seed: int = 1
     env_id: str = "ALE/SpaceInvaders-v5"
-    eval_episodes: int = 8
+    eval_episodes: int = 10
     wandb_tracking: bool = False  # off by default for HPO -> turned on in the final run
     wandb_proj: str = "rle-hpo"
     wandb_entity: str | None = None
@@ -49,7 +49,7 @@ class Args:
     cuda: bool = True
     save_model: bool = True
     eval_checkpoint: str | None = None
-    total_timesteps: int = 400_000
+    total_timesteps: int = 100_000
 
     # these hyper‑parameters will be overwritten by Optuna
     lr: float = 2.5e-4
@@ -75,7 +75,7 @@ class Args:
 
     # ---------------- Optuna flags ------------------
     tune: bool = True  # if True: run Bayesian HPO, else vanilla training
-    n_trials: int = 64 # number of HPO trials
+    n_trials: int = 32 # number of HPO trials
     study_name: str = "ppo_spaceinvaders_tpe"
     storage: str | None = None
 
