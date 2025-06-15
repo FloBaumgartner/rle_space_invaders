@@ -15,11 +15,15 @@ Beide Baselines werden über jeweils 100 Episoden evaluiert, wobei neben dem kum
 Ich habe bewusst 2 Baselines gewählt, um ein breites Spektrum an Vergleichswerten zu erhalten: Der RandomAgent zeigt die untere Grenze des Möglichen, während der HeuristicAgent eine einfache, aber effektive Strategie demonstriert. Beide liefern wertvolle Orientierungspunkte für die Bewertung der späteren lernenden Agenten.
 
 ### Ergebnisse des HeuristicAgent
-<img src="plots/base_heur_ep_length_bp.png" alt="Episode length plot" height="140" /><img src="plots/base_heur_ep_return_bp.png" alt="Episode return plot" height="140" /><img src="plots/base_heur_ep_time_bp.png" alt="Episode time plot" height="140" />
+<img src="plots/base_heur_ep_length_bp.png" alt="Episode length plot" height="140" />
+<img src="plots/base_heur_ep_return_bp.png" alt="Episode return plot" height="140" />
+<img src="plots/base_heur_ep_time_bp.png" alt="Episode time plot" height="140" />
 
 Der heuristische Agent erzielt einen durchschnittlichen `Episodic return` von ca. `265` und eine Standartabweichung von  ca. `105`.
 ### Ergebnisse des RandomAgent
-<img src="plots/base_rand_ep_length_bp.png" alt="Episode length plot" height="140" /><img src="plots/base_rand_ep_return_bp.png" alt="Episode return plot" height="140" /><img src="plots/base_rand_ep_time_bp.png" alt="Episode time plot" height="140" />
+<img src="plots/base_rand_ep_length_bp.png" alt="Episode length plot" height="140" />
+<img src="plots/base_rand_ep_return_bp.png" alt="Episode return plot" height="140" />
+<img src="plots/base_rand_ep_time_bp.png" alt="Episode time plot" height="140" />
 
 Der random Agent erzielt einen durchschnittlichen `Episodic return` von ca. `146` und eine Standartabweichung von  ca. `106`.
 
@@ -97,7 +101,9 @@ Alle linearen und Faltungs-Layer werden orthogonal initialisiert, um stabiles Le
 | heuristic | 663.00     | 182.94             |
 | random    | 535.56     | 169.96             |
 
-<img src="plots/init_ep_length_bp.png" alt="Episode length plot" height="140" /><img src="plots/base_heur_ep_length_bp.png" alt="Episode length plot" height="140" /><img src="plots/base_rand_ep_length_bp.png" alt="Episode length plot" height="140" />
+<img src="plots/init_ep_length_bp.png" alt="Episode length plot" height="140" />
+<img src="plots/base_heur_ep_length_bp.png" alt="Episode length plot" height="140" />
+<img src="plots/base_rand_ep_length_bp.png" alt="Episode length plot" height="140" />
 (plot1: initial,plot2: heuristic, plot3: random)
 
 Der trainierte Agent erreicht mit im Schnitt 942 Schritten pro Episode eine deutlich längere Lebensdauer als die Heuristik (663) und die zufällige Politik (536). Die grössere Standardabweichung (≈250) und die Ausreisser bis über 1 600 Schritte deuten darauf hin, dass das Modell in vielen, aber nicht allen Fällen sehr robust agiert und gelegentlich aussergewöhnlich lange durchs Spiel kommt. Die Heuristik bleibt mit moderater Variabilität (σ≈183) im Mittelfeld, während Random mit σ≈170 am wenigsten konsistent ist.
@@ -109,7 +115,9 @@ Der trainierte Agent erreicht mit im Schnitt 942 Schritten pro Episode eine deut
 | heuristic | 265.40     | 105.05             |
 | random    | 146.60     | 106.41             |
 
-<img src="plots/init_ep_return_bp.png" alt="Episode return plot" height="140" /><img src="plots/base_heur_ep_return_bp.png" alt="Episode return plot" height="140" /><img src="plots/base_rand_ep_return_bp.png" alt="Episode return plot" height="140" />
+<img src="plots/init_ep_return_bp.png" alt="Episode return plot" height="140" />
+<img src="plots/base_heur_ep_return_bp.png" alt="Episode return plot" height="140" />
+<img src="plots/base_rand_ep_return_bp.png" alt="Episode return plot" height="140" />
 (plot1: initial,plot2: heuristic, plot3: random)
 
 Bei der kumulierten Belohnung glänzt der gelernte Agent mit durchschnittlich 617 Punkten, das sind fast dreimal so viele wie die Heuristik (265) und noch mehr gegenüber Random (147). Auch hier zeigt der Agent die grösste Streuung in den Returns (σ≈250), was darauf hindeutet, dass er zwar oft sehr hohe Punktzahlen erzielt, gelegentlich aber auch unterdurchschnittlich abschneidet. Heuristik und Random liefern vergleichsweise schmalere Verteilungen und niedrigere Maxima.
@@ -120,7 +128,10 @@ Bei der kumulierten Belohnung glänzt der gelernte Agent mit durchschnittlich 61
 | Initial   | 0.61       | 0.16               |
 | heuristic | 0.68       | 0.22               |
 | random    | 0.59       | 0.19               |
-<img src="plots/init_ep_time_bp.png" alt="Episode time plot" height="140" /><img src="plots/base_heur_ep_time_bp.png" alt="Episode time plot" height="140" /><img src="plots/base_rand_ep_time_bp.png" alt="Episode time plot" height=140" />
+
+<img src="plots/init_ep_time_bp.png" alt="Episode time plot" height="140" />
+<img src="plots/base_heur_ep_time_bp.png" alt="Episode time plot" height="140" />
+<img src="plots/base_rand_ep_time_bp.png" alt="Episode time plot" height=140" />
 (plot1: initial,plot2: heuristic, plot3: random)
 
 Die Ausführungszeit pro Episode liegt beim Agenten bei etwa 0,61 s, was nur minimal langsamer ist als Random (0,59 s) und sogar etwas flotter als die Heuristik (0,68 s). Die geringe Varianz in den Laufzeiten (Agent σ≈0,16 s, Heuristik σ≈0,22 s, Random σ≈0,19 s) zeigt, dass die zusätzliche Netzwerkinferenz nur einen sehr moderaten Overhead verursacht und der Agent insgesamt sehr effizient arbeitet.
@@ -191,11 +202,13 @@ Der Impala-Agent ist also schlanker, lässt sich tiefer stapeln und profitiert v
 | impala   | 489.50     | 165.67             |
 | Initial  | 616.65     | 188.92             |
 
-<img src="plots/impala_ep_return_bp.png" alt="Episode return plot" height="140" /><img src="plots/init_ep_return_bp.png" alt="Episode return plot" height=140" />
+<img src="plots/impala_ep_return_bp.png" alt="Episode return plot" height="140" />
+<img src="plots/init_ep_return_bp.png" alt="Episode return plot" height=140" />
 (plot1: impala, plot2: initial)
 
 
 Die Visualisierung der Episodenlängen und Episodenzeiten, werden dann am Schluss mit allen anderen Agenten verglichen.
+
 #### Analyse
 
 Im Vergleich zum ursprünglichen („Initial“) PPO-Ansatz liefert Impala deutlich geringere mittlere Episoden-Renditen (≈ 490 vs. 617) und erreicht auch in seinen Quartilen und Maxima nicht das Niveau des Initial-Modells. Gleichzeitig ist die Streuung bei Impala mit σ≈ 166 etwas geringer als beim Initial-Ansatz (σ≈ 189), das heisst, Impala agiert zwar konsistenter, bleibt aber unterdurchschnittlich in der Performance. Die Boxplots zeigen, dass selbst die oberen Ausreisser von Impala (≈ 900–950 Punkte) nicht an die Spitzenwerte des Initial-Agents (über 1 200 Punkte) heranreichen.
